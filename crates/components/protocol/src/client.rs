@@ -2,14 +2,60 @@ use std::borrow::Cow;
 
 use futures::Sink;
 
-use crate::{Command, Event};
-
+use crate::{RawCommand, RawEvent,Event};
+use crate::nats;
+use std::io::{BufReader,BufWriter};
+use std::io::prelude::*;
+use std::io::{self, Error, ErrorKind};
 pub trait Client {
-    fn sender(&self) -> Box<dyn Sink<Command, Error = String> + Send + Sync + Unpin + 'static>;
+    fn sender(&self) -> Box<dyn Sink<RawCommand, Error = String> + Send + Sync + Unpin + 'static>;
     fn poll_once(&mut self) -> Option<Vec<Event>>;
 }
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct ClientName(pub Cow<'static, str>);
 
-pub type BoxClient = Box<dyn Client + Send + Sync + 'static>;
+pub type BoxClient2 = Box<dyn Client + Send + Sync + 'static>;
+const BUF_CAPACITY: usize = 128 * 1024;
+
+pub struct BoxClient{
+  pub clients: Vec<Box<dyn Client + Send + Sync + 'static>>,
+  pub options: nats::Options,
+}
+impl Default for BoxClient{
+  fn default()->Self{
+    BoxClient{
+      clients:vec![],
+      options: nats::Options::default()
+    }
+  }
+}
+impl BoxClient{
+  pub fn handle_server_op(&mut self,msg:Vec<u8>)->io::Result<Option<nats::proto::ServerOp>>{
+    let mut reader = BufReader::with_capacity(BUF_CAPACITY, &*msg);
+    let server_op:Option<nats::proto::ServerOp> = nats::proto::decode(&mut reader)?;
+    // if let Some(z) = server_op{
+    //   // match z {
+    //   //   // nats::proto::ServerOp::Info(server_info)=>{
+    //   //   //   for url in &server_info.connect_urls {
+    //   //   //     connector.add_url(url).ok();
+    //   //   //   }
+    //   //   //   *self.server_info.lock() = Some(server_info);
+    //   //   }
+        
+    //   }
+    Ok(server_op)
+  }
+  
+}
+pub fn handle_server_op<'a>(msg:Vec<u8>)->io::Result<Option<nats::proto::ServerOp>>{
+  let mut reader = BufReader::with_capacity(BUF_CAPACITY, &*msg);
+  let server_op:Option<nats::proto::ServerOp> = nats::proto::decode(&mut reader)?;
+  Ok(server_op)
+}
+pub fn handle_client_op<'a>(client_op:nats::proto::ClientOp<'a>)->io::Result<Vec<u8>>{
+  let mut bytes:Vec<u8> = vec![];
+  let writer = BufWriter::with_capacity(BUF_CAPACITY,&mut *bytes);
+  nats::proto::encode(writer,client_op)?;
+  Ok(bytes)
+}

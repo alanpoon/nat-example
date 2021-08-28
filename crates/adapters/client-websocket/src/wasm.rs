@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use protocol::futures::channel::mpsc::channel;
 use protocol::futures::future::ready;
 use protocol::futures::prelude::*;
-use protocol::{Client, ClientName, Command, Event};
+use protocol::{Client, ClientName, RawCommand, RawEvent,Event};
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -21,9 +21,9 @@ pub struct WebSocketClient<Tx> {
 #[async_trait]
 impl<Tx> Client for WebSocketClient<Tx>
 where
-    Tx: Sink<Command, Error = String> + Clone + Send + Sync + Unpin + 'static,
+    Tx: Sink<Vec<u8>, Error = String> + Clone + Send + Sync + Unpin + 'static,
 {
-    fn sender(&self) -> Box<dyn Sink<Command, Error = String> + Send + Sync + Unpin + 'static> {
+    fn sender(&self) -> Box<dyn Sink<Vec<u8>, Error = String> + Send + Sync + Unpin + 'static> {
         Box::new(self.command_sender.clone())
     }
 
@@ -41,7 +41,7 @@ pub async fn connect(
     client_name: ClientName,
     url: String,
 ) -> Result<
-    WebSocketClient<impl Sink<Command, Error = String> + Clone + Send + Sync + Unpin + 'static>,
+    WebSocketClient<impl Sink<Vec<u8>, Error = String> + Clone + Send + Sync + Unpin + 'static>,
 > {
     let (tx, rx) = cross_websocket::connect(url).await?.split();
     let (tx_clone, rx_clone) = channel::<Vec<u8>>(32);
@@ -62,7 +62,7 @@ pub async fn connect(
                 .unwrap()
                 .get_mut(&client_name)
                 .unwrap()
-                .push(event),
+                .push(Event::Nats(event)),
         )
     }));
     result

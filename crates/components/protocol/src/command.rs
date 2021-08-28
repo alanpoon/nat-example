@@ -4,15 +4,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(tag = "c")] // stands for code
 pub enum Command {
+    Nats(Vec<u8>),
     #[serde(other)]
     Unknown,
 }
-
 #[cfg(test)]
 mod test {
     use super::*;
 }
-
+pub type RawCommand = Vec<u8>;
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Commands(Vec<Command>);
 impl Commands {

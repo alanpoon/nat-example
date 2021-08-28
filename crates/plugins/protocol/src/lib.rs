@@ -1,3 +1,4 @@
+
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 #[cfg(target_arch = "wasm32")]
@@ -11,6 +12,7 @@ use bevy::prelude::*;
 use core::ProtocolSystem;
 use futures::prelude::*;
 use protocol::{BoxClient, ClientContext, ClientInput, ClientState, ClientStateDispatcher};
+use protocol::{Command,Event};
 use tracing::error;
 
 pub struct ProtocolPlugin;
@@ -35,6 +37,8 @@ impl Plugin for ProtocolPlugin {
         app.add_startup_system(connect_websocket.system());
         #[cfg(target_arch = "wasm32")]
         app.add_system(set_client.system());
+        // #[cfg(target_arch = "wasm32")]
+        // app.add_system(dial_loop.system());
     }
 }
 
@@ -63,23 +67,30 @@ fn handle_events(
     }
 }
 
-fn send_commands(client: ResMut<Option<BoxClient>>, mut commands: ResMut<protocol::Commands>) {
-    if let Some(ref client) = *client {
+fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<protocol::Commands>) {
+    if let Some(ref mut client) = *client {
         for command in commands.iter() {
             let command = command.clone();
-            let mut sender = client.sender();
-            block_on(async move {
-                sender.send(command).await.unwrap_or_else(|err| {
+            let len = client.clients.len();
+            let rand_int = get_random_int(0,len as i32);
+            let mut sender = client.clients.get_mut(rand_int).unwrap().sender();
+            if let Command::Nats(b) = command{
+              block_on(async move {
+                sender.send(b).await.unwrap_or_else(|err| {
+                //sender.send(command).await.unwrap_or_else(|err| {
                     error!("{}", err);
                 })
-            });
+              });
+            }
         }
         commands.clear();
     }
 }
 fn receive_events(mut client: ResMut<Option<BoxClient>>, mut events: ResMut<protocol::Events>) {
     if let Some(ref mut client) = *client {
-        if let Some(vec) = client.poll_once() {
+        let len = client.clients.len();
+        let rand_int = get_random_int(0,len as i32);
+        if let Some(vec) = client.clients.get_mut(rand_int).unwrap().poll_once() {
             for event in vec {
                 events.push(event);
             }
