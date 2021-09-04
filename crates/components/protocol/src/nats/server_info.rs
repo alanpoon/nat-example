@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone, Debug,Serialize,Deserialize,PartialEq)]
 pub struct ServerInfo {
     /// The unique identifier of the NATS server.
     pub server_id: String,

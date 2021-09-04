@@ -4,7 +4,7 @@ use std::{
     ptr::write_volatile,
     sync::atomic::{compiler_fence, Ordering::SeqCst},
 };
-
+use serde::{Serialize,Deserialize};
 /// A `Vec<u8>` that gets scrambled on drop.
 /// Provides a vector that will scramble allocations as
 /// they are discarded when the vector grows.
@@ -16,7 +16,7 @@ use std::{
 /// Uses the basic idea (`write_volatile` + `compiler_fence`)
 /// from @bascule's zeroize crate but overwrites data with
 /// random bytes instead of zeros.
-#[derive(Clone, Default)]
+#[derive(Clone, Default,Debug,Serialize,Deserialize,PartialEq)]
 pub(crate) struct SecureVec(Vec<u8>);
 
 impl SecureVec {
@@ -78,7 +78,7 @@ impl Deref for SecureVec {
 /// random bytes instead of zeros.
 ///
 /// Public + hidden for testing purposes.
-#[derive(Clone, Default)]
+#[derive(Clone, Default,Serialize,Deserialize,PartialEq)]
 #[doc(hidden)]
 pub struct SecureString(String);
 

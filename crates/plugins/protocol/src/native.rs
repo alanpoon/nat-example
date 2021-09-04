@@ -11,7 +11,7 @@ pub fn connect_websocket(mut client_res: ResMut<Option<BoxClient>>) {
     let rt = Runtime::new().expect("failed to start a runtime");
 
     // Spawn the root task
-    rt.block_on(connect("ws://127.0.0.1:5000/ws".into()))
+    rt.block_on(connect("wss://127.0.0.1:9222".into()))
         .map(|client| {
             *client_res = Some(Box::new(client));
         })

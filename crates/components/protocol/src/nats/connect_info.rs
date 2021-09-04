@@ -1,5 +1,6 @@
 use crate::nats::*;
-#[derive(Clone, Debug)]
+use serde::{Serialize,Deserialize};
+#[derive(Clone, Debug,Serialize,Deserialize,PartialEq)]
 pub struct ConnectInfo {
   /// Turns on +OK protocol acknowledgements.
   pub verbose: bool,

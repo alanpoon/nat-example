@@ -2,10 +2,11 @@ use std::convert::TryFrom;
 use std::io::prelude::*;
 use std::io::{self, Error, ErrorKind};
 use std::str::{self, FromStr};
+use serde::{Serialize, Deserialize};
 use crate::nats::{Headers, ServerInfo,ConnectInfo};
 
 /// A protocol operation sent by the server.
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize,Clone,PartialEq)]
 pub enum ServerOp {
     /// `INFO {["option_name":option_value],...}`
     Info(ServerInfo),
@@ -245,30 +246,30 @@ pub fn decode(mut stream: impl BufRead) -> io::Result<Option<ServerOp>> {
 }
 
 /// A protocol operation sent by the client.
-#[derive(Clone, Copy, Debug)]
-pub enum ClientOp<'a> {
+#[derive(Clone, Debug,Serialize,Deserialize,PartialEq)]
+pub enum ClientOp {
     /// `CONNECT {["option_name":option_value],...}`
-    Connect(&'a ConnectInfo),
+    Connect(ConnectInfo),
 
     /// `PUB <subject> [reply-to] <#bytes>\r\n[payload]\r\n`
     Pub {
-        subject: &'a str,
-        reply_to: Option<&'a str>,
-        payload: &'a [u8],
+        subject: String,
+        reply_to: Option<String>,
+        payload: Vec<u8>,
     },
 
     /// `HPUB <subject> [reply-to] <#bytes>\r\n[payload]\r\n`
     Hpub {
-        subject: &'a str,
-        reply_to: Option<&'a str>,
-        headers: &'a Headers,
-        payload: &'a [u8],
+        subject: String,
+        reply_to: Option<String>,
+        headers: Headers,
+        payload: Vec<u8>,
     },
 
     /// `SUB <subject> [queue group] <sid>\r\n`
     Sub {
-        subject: &'a str,
-        queue_group: Option<&'a str>,
+        subject: String,
+        queue_group: Option<String>,
         sid: u64,
     },
 
@@ -283,109 +284,109 @@ pub enum ClientOp<'a> {
 }
 
 /// Encodes a single operation from the client.
-pub fn encode(
-    mut stream: impl Write,
-    op: ClientOp<'_>,
+pub(crate) fn encode(
+  mut stream: impl Write,
+  op: ClientOp,
 ) -> io::Result<()> {
-    match &op {
-        ClientOp::Connect(connect_info) => {
-            let op = format!(
-                "CONNECT {}\r\n",
-                connect_info.dump().ok_or_else(|| Error::new(
-                    ErrorKind::InvalidData,
-                    "cannot serialize connect info"
-                ))?
-            );
-            stream.write_all(op.as_bytes())?;
-        }
+  match op {
+      ClientOp::Connect(connect_info) => {
+          let op = format!(
+              "CONNECT {}\r\n",
+              connect_info.dump().ok_or_else(|| Error::new(
+                  ErrorKind::InvalidData,
+                  "cannot serialize connect info"
+              ))?
+          );
+          stream.write_all(op.as_bytes())?;
+      }
 
-        ClientOp::Pub {
-            subject,
-            reply_to,
-            payload,
-        } => {
-            stream.write_all(b"PUB ")?;
-            stream.write_all(subject.as_bytes())?;
-            stream.write_all(b" ")?;
+      ClientOp::Pub {
+          subject,
+          reply_to,
+          payload,
+      } => {
+          stream.write_all(b"PUB ")?;
+          stream.write_all(subject.as_bytes())?;
+          stream.write_all(b" ")?;
 
-            if let Some(reply_to) = reply_to {
-                stream.write_all(reply_to.as_bytes())?;
-                stream.write_all(b" ")?;
-            }
+          if let Some(reply_to) = reply_to {
+              stream.write_all(reply_to.as_bytes())?;
+              stream.write_all(b" ")?;
+          }
 
-            let mut buf = itoa::Buffer::new();
-            stream.write_all(buf.format(payload.len()).as_bytes())?;
-            stream.write_all(b"\r\n")?;
+          let mut buf = itoa::Buffer::new();
+          stream.write_all(buf.format(payload.len()).as_bytes())?;
+          stream.write_all(b"\r\n")?;
 
-            stream.write_all(payload)?;
-            stream.write_all(b"\r\n")?;
-        }
+          stream.write_all(&payload)?;
+          stream.write_all(b"\r\n")?;
+      }
 
-        ClientOp::Hpub {
-            subject,
-            reply_to,
-            headers,
-            payload,
-        } => {
-            stream.write_all(b"HPUB ")?;
-            stream.write_all(subject.as_bytes())?;
-            stream.write_all(b" ")?;
+      ClientOp::Hpub {
+          subject,
+          reply_to,
+          headers,
+          payload,
+      } => {
+          stream.write_all(b"HPUB ")?;
+          stream.write_all(subject.as_bytes())?;
+          stream.write_all(b" ")?;
 
-            if let Some(reply_to) = reply_to {
-                stream.write_all(reply_to.as_bytes())?;
-                stream.write_all(b" ")?;
-            }
+          if let Some(reply_to) = reply_to {
+              stream.write_all(reply_to.as_bytes())?;
+              stream.write_all(b" ")?;
+          }
 
-            let header_bytes = headers.to_bytes();
+          let header_bytes = headers.to_bytes();
 
-            let header_len = header_bytes.len();
-            let total_len = header_len + payload.len();
+          let header_len = header_bytes.len();
+          let total_len = header_len + payload.len();
 
-            let mut hlen_buf = itoa::Buffer::new();
-            stream.write_all(hlen_buf.format(header_len).as_bytes())?;
+          let mut hlen_buf = itoa::Buffer::new();
+          stream.write_all(hlen_buf.format(header_len).as_bytes())?;
 
-            stream.write_all(b" ")?;
+          stream.write_all(b" ")?;
 
-            let mut tlen_buf = itoa::Buffer::new();
-            stream.write_all(tlen_buf.format(total_len).as_bytes())?;
+          let mut tlen_buf = itoa::Buffer::new();
+          stream.write_all(tlen_buf.format(total_len).as_bytes())?;
 
-            stream.write_all(b"\r\n")?;
+          stream.write_all(b"\r\n")?;
 
-            stream.write_all(&header_bytes)?;
-            stream.write_all(payload)?;
-            stream.write_all(b"\r\n")?;
-        }
+          stream.write_all(&header_bytes)?;
+          stream.write_all(&payload)?;
+          stream.write_all(b"\r\n")?;
+      }
 
-        ClientOp::Sub {
-            subject,
-            queue_group,
-            sid,
-        } => {
-            let op = if let Some(queue_group) = queue_group {
-                format!("SUB {} {} {}\r\n", subject, queue_group, sid)
-            } else {
-                format!("SUB {} {}\r\n", subject, sid)
-            };
-            stream.write_all(op.as_bytes())?;
-        }
+      ClientOp::Sub {
+          subject,
+          queue_group,
+          sid,
+      } => {
+          let op = if let Some(queue_group) = queue_group {
+              format!("SUB {} {} {}\r\n", subject, queue_group, sid)
+          } else {
+              format!("SUB {} {}\r\n", subject, sid)
+          };
+          stream.write_all(op.as_bytes())?;
+      }
 
-        ClientOp::Unsub { sid, max_msgs } => {
-            let op = if let Some(max_msgs) = max_msgs {
-                format!("UNSUB {} {}\r\n", sid, max_msgs)
-            } else {
-                format!("UNSUB {}\r\n", sid)
-            };
-            stream.write_all(op.as_bytes())?;
-        }
+      ClientOp::Unsub { sid, max_msgs } => {
+          let op = if let Some(max_msgs) = max_msgs {
+              format!("UNSUB {} {}\r\n", sid, max_msgs)
+          } else {
+              format!("UNSUB {}\r\n", sid)
+          };
+          stream.write_all(op.as_bytes())?;
+      }
 
-        ClientOp::Ping => {
-            stream.write_all(b"PING\r\n")?;
-        }
+      ClientOp::Ping => {
+          stream.write_all(b"PING\r\n")?;
+      }
 
-        ClientOp::Pong => {
-            stream.write_all(b"PONG\r\n")?;
-        }
-    }
+      ClientOp::Pong => {
+          stream.write_all(b"PONG\r\n")?;
+      }
+  }
 
-    Ok(())
+  Ok(())
 }

@@ -1374,6 +1374,7 @@ version = "0.1.0"
 dependencies = [
  "eyre",
  "futures",
+ "pharos",
  "thiserror",
  "tokio-tungstenite",
  "ws_stream_wasm",
@@ -1563,6 +1564,7 @@ dependencies = [
  "serde_cbor",
  "tokio",
  "tracing",
+ "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
 
@@ -1623,6 +1625,7 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+ "wasm-bindgen",
 ]
 
 [[package]]

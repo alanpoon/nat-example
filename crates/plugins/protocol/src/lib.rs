@@ -22,6 +22,7 @@ impl Plugin for ProtocolPlugin {
         let app = app
             .init_resource::<protocol::Commands>()
             .init_resource::<protocol::Events>()
+            .init_resource::<protocol::WSEvents>()
             .init_resource::<Option<BoxClient>>()
             .init_resource::<Option<ClientStateDispatcher>>()
             .add_system(add_client_state.system())
@@ -66,7 +67,20 @@ fn handle_events(
         *commands = context.commands;
     }
 }
-
+fn handle_wsevents(
+  mut state: ResMut<Option<ClientStateDispatcher>>,
+  events: ResMut<protocol::WSEvents>,
+) {
+  if let Some(ref mut state) = *state {
+      let mut context = ClientContext {
+          commands: Default::default(),
+      };
+      for event in events.iter() {
+          *state = state.handle(&mut context, &ClientInput::Event(event.clone()));
+      }
+     // *commands = context.commands;
+  }
+}
 fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<protocol::Commands>) {
     if let Some(ref mut client) = *client {
         for command in commands.iter() {
@@ -74,10 +88,9 @@ fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<pr
             let len = client.clients.len();
             let rand_int = get_random_int(0,len as i32);
             let mut sender = client.clients.get_mut(rand_int).unwrap().sender();
-            if let Command::Nats(b) = command{
+            if let Command::Nats(_,b) = command{
               block_on(async move {
                 sender.send(b).await.unwrap_or_else(|err| {
-                //sender.send(command).await.unwrap_or_else(|err| {
                     error!("{}", err);
                 })
               });
@@ -90,10 +103,15 @@ fn receive_events(mut client: ResMut<Option<BoxClient>>, mut events: ResMut<prot
     if let Some(ref mut client) = *client {
         let len = client.clients.len();
         let rand_int = get_random_int(0,len as i32);
-        if let Some(vec) = client.clients.get_mut(rand_int).unwrap().poll_once() {
+        if let Some(vec) = client.clients.get_mut(0).unwrap().poll_once() {
             for event in vec {
                 events.push(event);
             }
+        }
+        if let Some(vec) = client.clients.get_mut(0).unwrap().poll_ws_once(){
+          for event in vec{
+            client.clients.get_mut(0).unwrap().reconnect();
+          }
         }
     }
 }

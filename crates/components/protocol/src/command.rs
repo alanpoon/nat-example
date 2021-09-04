@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-
+use crate::nats;
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(tag = "c")] // stands for code
+//#[serde(tag = "c")] // stands for code
 pub enum Command {
-    Nats(Vec<u8>),
+    Nats(String,nats::proto::ClientOp),
     #[serde(other)]
     Unknown,
 }
@@ -12,7 +12,7 @@ pub enum Command {
 mod test {
     use super::*;
 }
-pub type RawCommand = Vec<u8>;
+pub type RawCommand = nats::proto::ClientOp;
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Commands(Vec<Command>);
 impl Commands {

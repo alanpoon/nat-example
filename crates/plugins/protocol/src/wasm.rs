@@ -6,10 +6,10 @@ use futures::future::ready;
 use futures::prelude::*;
 use futures::future::{join_all, ok, err};
 use lazy_static::lazy_static;
-use protocol::{BoxClient, ClientName,nats};
+use protocol::{BoxClient, BoxClient2,ClientName,nats};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc,Mutex};
 use tracing::error;
 use wasm_bindgen_futures::spawn_local;
 #[wasm_bindgen]
@@ -38,43 +38,42 @@ const DEFAULT_CLIENT: ClientName =
     ClientName(Cow::Borrowed("desk-plugin-protocol: default client"));
 
 lazy_static! {
-    static ref CLIENTS: Mutex<HashMap<ClientName, BoxClient>> = Mutex::new(HashMap::new());
+    static ref CLIENTS: Mutex<HashMap<ClientName, BoxClient2>> = Mutex::new(HashMap::new());
 }
 
 pub fn connect_websocket() {
-    let servers=vec![String::from("ws://127.0.0.1:5000/ws")];
-    
-    let future_arr= servers.iter().map(|s|{
+    let servers=vec![String::from("wss://localhost:9222/")];
+    let future_arr = servers.iter().map(|s|{
       connect(DEFAULT_CLIENT,s.to_string()).then(|c|{
         ready(c
-          .map(|client| Box::new(client))
-          // .map(|client| {
-          //   bc.clients.push(client);
-          // })
-        )
+        .map(|client| {
+            CLIENTS.lock().unwrap().insert(DEFAULT_CLIENT, std::boxed::Box::new(client));
+        })
+        .unwrap_or_else(|err| error!("{}", err)))
       })
     });
     let join_ = join_all(future_arr).then(|l|{
-      let mut bc = BoxClient::default();
-      for n in l{
-        if let Ok(z) = n{
-          bc.clients.push(z);
-        }
-      }
-      CLIENTS.lock().unwrap().insert(DEFAULT_CLIENT, bc);
       ready(())
-      
-      });
+    });
     spawn_local(join_);
-    
 }
 
 pub fn set_client(mut client_res: ResMut<Option<BoxClient>>) {
     let mut map = CLIENTS.lock().unwrap();
-    if let Some(client) = map.remove(&DEFAULT_CLIENT) {
-        *client_res = Some(client);
+    for (k,v) in map.drain(){
+      if let Some(ref mut c) = *client_res{
+        c.clients.push(v);
+      } else{
+        let mut bc = BoxClient::default();
+        bc.clients=vec![v];
+        *client_res = Some(bc);
+      }
+    }
+    if let Some(ref mut c) = *client_res{
+      
     }
 }
+
 
 pub fn block_on<T>(future: impl Future<Output = T> + 'static) {
     wasm_bindgen_futures::spawn_local(async { future.map(|_| ()).await });

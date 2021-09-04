@@ -1,11 +1,11 @@
 use std::borrow::Cow;
-use ws_stream_wasm::{WsMessage, WsMeta};
+use ws_stream_wasm::{WsMessage, WsMeta,WsEvent};
 
 use crate::{SinkError, WebSocketClient};
 use eyre::Result;
 use futures::future::{ready, Ready};
 use futures::{prelude::*, Sink, Stream};
-
+use pharos;
 type Bytes = Vec<u8>;
 
 pub async fn connect<'a, T: Into<Cow<'a, str>>>(
@@ -14,10 +14,11 @@ pub async fn connect<'a, T: Into<Cow<'a, str>>>(
     WebSocketClient<
         impl Sink<Bytes, Error = SinkError> + Send + Sync + Unpin + 'static,
         impl Stream<Item = Result<Bytes>> + Send + Sync + Unpin + 'static,
+        impl pharos::Observable<WsEvent>,
     >,
 > {
     let str: Cow<'a, str> = addr.into();
-    let (_, wsio) = WsMeta::connect(str.as_ref(), None).await?;
+    let (meta, wsio) = WsMeta::connect(str.as_ref(), None).await?;
     let (tx, rx) = wsio.split();
     let rx = rx.map(|message| -> Result<Bytes> { Ok(message.into()) });
     let tx = tx
@@ -26,5 +27,5 @@ pub async fn connect<'a, T: Into<Cow<'a, str>>>(
             ready(Ok(WsMessage::Binary(bytes)))
         });
 
-    Ok(WebSocketClient { tx, rx })
+    Ok(WebSocketClient { tx, rx,meta })
 }

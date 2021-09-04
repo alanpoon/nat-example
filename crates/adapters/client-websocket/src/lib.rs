@@ -16,12 +16,16 @@ use eyre::Result;
 use protocol::futures::future::{ready, Ready};
 use protocol::futures::{prelude::*, Stream};
 use protocol::{unwrap_and_log, RawCommand, RawEvent};
+use protocol::{handle_client_op,handle_server_op};
 use tracing::error;
 
 fn event_receiver(
     rx: impl Stream<Item = Result<Vec<u8>>> + Send + Sync + 'static + Unpin,
 ) -> impl Stream<Item = RawEvent> + Send + Sync + 'static + Unpin {
-    rx.map(|bytes| -> Result<RawEvent> { Ok(serde_cbor::from_slice(&bytes?)?) })
+    rx.map(|bytes| -> Result<RawEvent> { Ok(
+      handle_server_op(bytes?)?
+      //serde_cbor::from_slice(&bytes?)?
+    )})
         .filter_map(unwrap_and_log!())
 }
 
@@ -29,7 +33,8 @@ fn command_sender(
     tx: impl Sink<Vec<u8>, Error = String> + Clone + Send + Sync + 'static + Unpin,
 ) -> impl Sink<RawCommand, Error = String> + Clone + Send + Sync + 'static + Unpin {
     tx.with(|command: RawCommand| -> Ready<Result<Vec<u8>, String>> {
-        match serde_cbor::to_vec(&command) {
+        //match serde_cbor::to_vec(&command) {
+        match handle_client_op(command){
             Ok(vec) => ready(Ok(vec)),
             Err(err) => {
                 error!("{}", err);

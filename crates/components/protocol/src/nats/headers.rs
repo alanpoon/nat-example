@@ -4,8 +4,9 @@ use std::{
     iter::{FromIterator, IntoIterator},
     ops::Deref,
 };
+use serde::{Serialize, Deserialize};
 /// A multi-map from header name to a set of values for that header
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq,Serialize,Deserialize)]
 pub struct Headers {
     /// A multi-map from header name to a set of values for that header
     pub inner: HashMap<String, HashSet<String>>,

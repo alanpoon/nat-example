@@ -10,6 +10,7 @@ use std::io::{self, Error, ErrorKind};
 pub trait Client {
     fn sender(&self) -> Box<dyn Sink<RawCommand, Error = String> + Send + Sync + Unpin + 'static>;
     fn poll_once(&mut self) -> Option<Vec<Event>>;
+    fn poll_ws_once(&mut self) -> Option<Vec<Event>>;
 }
 
 #[derive(Clone, Hash, Eq, PartialEq)]
@@ -48,12 +49,12 @@ impl BoxClient{
   }
   
 }
-pub fn handle_server_op<'a>(msg:Vec<u8>)->io::Result<Option<nats::proto::ServerOp>>{
+pub fn handle_server_op(msg:Vec<u8>)->io::Result<nats::proto::ServerOp>{
   let mut reader = BufReader::with_capacity(BUF_CAPACITY, &*msg);
   let server_op:Option<nats::proto::ServerOp> = nats::proto::decode(&mut reader)?;
-  Ok(server_op)
+  server_op.ok_or(std::io::Error::from(std::io::ErrorKind::InvalidData))
 }
-pub fn handle_client_op<'a>(client_op:nats::proto::ClientOp<'a>)->io::Result<Vec<u8>>{
+pub fn handle_client_op(client_op:nats::proto::ClientOp)->io::Result<Vec<u8>>{
   let mut bytes:Vec<u8> = vec![];
   let writer = BufWriter::with_capacity(BUF_CAPACITY,&mut *bytes);
   nats::proto::encode(writer,client_op)?;
