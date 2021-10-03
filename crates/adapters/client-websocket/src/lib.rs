@@ -17,8 +17,9 @@ use protocol::futures::future::{ready, Ready};
 use protocol::futures::{prelude::*, Stream};
 use protocol::{unwrap_and_log, RawCommand, RawEvent};
 use protocol::{handle_client_op,handle_server_op};
+use protocol::{nats,ClientName};
 use tracing::error;
-
+use std::borrow::Cow;
 fn event_receiver(
     rx: impl Stream<Item = Result<Vec<u8>>> + Send + Sync + 'static + Unpin,
 ) -> impl Stream<Item = RawEvent> + Send + Sync + 'static + Unpin {
@@ -34,6 +35,12 @@ fn command_sender(
 ) -> impl Sink<RawCommand, Error = String> + Clone + Send + Sync + 'static + Unpin {
     tx.with(|command: RawCommand| -> Ready<Result<Vec<u8>, String>> {
         //match serde_cbor::to_vec(&command) {
+        // if let nats::proto::ClientOp::Sub{subject, ..}= command.clone(){
+        //   save_sub(subject,ClientName(Cow::Borrowed("default")));
+        // }
+        // if let nats::proto::ClientOp::Pub{subject, ..} = command.clone(){
+        //   save_pub(subject,ClientName(Cow::Borrowed("default")));
+        // }
         match handle_client_op(command){
             Ok(vec) => ready(Ok(vec)),
             Err(err) => {

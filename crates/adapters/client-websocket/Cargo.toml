@@ -12,6 +12,9 @@ serde_cbor = "0.11.1"
 tracing = "0.1.26"
 cross-websocket = { package = "cross-websocket", path = "../../libs/cross-websocket", version = "0.1.0" }
 futures-lite = "1.12.0"
+pharos = "0.5.2"
+ws_stream_wasm = { version = "0.7.3" }
+log ="0.4"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.9.0", features = ["full"] }

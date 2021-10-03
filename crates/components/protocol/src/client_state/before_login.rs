@@ -1,53 +1,42 @@
 use tracing::error;
 
-use crate::{ClientContext, ClientInput, ClientState, ClientStateDispatcher, Event};
-
+use crate::{ClientContext, ClientInput, ClientState, ClientStateDispatcher, Event,Command};
+use crate::nats;
 use super::normal::Normal;
 use wasm_bindgen::prelude::*;
+use log::*;
 #[derive(Debug, PartialEq, Clone)]
 pub struct BeforeLogin {}
-#[wasm_bindgen]
-extern "C" {
-    // Use `js_namespace` here to bind `console.log(..)` instead of just
-    // `log(..)`
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
 
-    // The `console.log` is quite polymorphic, so we can bind it with multiple
-    // signatures. Note that we need to use `js_name` to ensure we always call
-    // `log` in JS.
-    #[wasm_bindgen(js_namespace = console, js_name = log)]
-    fn log_u32(a: u32);
-
-    // Multiple arguments too!
-    #[wasm_bindgen(js_namespace = console, js_name = log)]
-    fn log_many(a: &str, b: &str);
-}
-macro_rules! console_log {
-  // Note that this is using the `log` function imported above during
-  // `bare_bones`
-  ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
 impl ClientState for BeforeLogin {
-    fn handle(&self, _commands: &mut ClientContext, event: &ClientInput) -> ClientStateDispatcher {
-      console_log!("event{:?}",event);
+    fn handle(&self, commands: &mut ClientContext, event: &ClientInput) -> ClientStateDispatcher {
+      info!("LZ{:?}",event);
         match event {
             ClientInput::Event(e) => {
-                if let Event::Nats(_,s_op)=e{
-                  console_log!("{:?}",s_op);
+                if let Event::Nats(client_name,s_op)=e{
+                  info!("client_name: {}, {:?}",client_name,s_op);
+                  let n = nats::proto::ClientOp::Sub{
+                    subject:String::from("hello"),
+                    queue_group:None,
+                    sid:3,
+                  };
+                  commands.commands.push(Command::Nats(String::from("default"),n));
+                  info!("subscribe hello");
                 }
-                if let Event::WSClose=e{
-                  console_log!("WSClose");
-                }
-                return Normal {
+                else if &Event::NatSubOk(String::from("hello"))== e{
+                  return Normal{
                     
+                  }
+                  .into()
                 }
-                .into();
+            
+               
             }
             event => {
                 error!("unexpected event: {:?}", event);
             }
         }
+       
         self.clone().into()
     }
 }

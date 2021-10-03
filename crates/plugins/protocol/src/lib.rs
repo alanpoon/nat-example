@@ -11,10 +11,11 @@ use native::*;
 use bevy::prelude::*;
 use core::ProtocolSystem;
 use futures::prelude::*;
-use protocol::{BoxClient, ClientContext, ClientInput, ClientState, ClientStateDispatcher};
-use protocol::{Command,Event};
+use protocol::{BoxClient, ClientContext, ClientInput, ClientState, ClientStateDispatcher,ClientName};
+use protocol::{Command,Event,nats};
 use tracing::error;
-
+use client_websocket::save_sub;
+use std::borrow::Cow;
 pub struct ProtocolPlugin;
 
 impl Plugin for ProtocolPlugin {
@@ -22,7 +23,6 @@ impl Plugin for ProtocolPlugin {
         let app = app
             .init_resource::<protocol::Commands>()
             .init_resource::<protocol::Events>()
-            .init_resource::<protocol::WSEvents>()
             .init_resource::<Option<BoxClient>>()
             .init_resource::<Option<ClientStateDispatcher>>()
             .add_system(add_client_state.system())
@@ -34,7 +34,8 @@ impl Plugin for ProtocolPlugin {
                     .after(ProtocolSystem::ReceiveEvents)
                     .before(ProtocolSystem::SendCommands),
             )
-            .add_system(send_commands.system().label(ProtocolSystem::SendCommands));
+            .add_system(send_commands.system().label(ProtocolSystem::SendCommands).after(ProtocolSystem::ReceiveEvents));
+            //.add_system(send_commands.system());
         app.add_startup_system(connect_websocket.system());
         #[cfg(target_arch = "wasm32")]
         app.add_system(set_client.system());
@@ -55,7 +56,7 @@ fn add_client_state(
 fn handle_events(
     mut state: ResMut<Option<ClientStateDispatcher>>,
     mut commands: ResMut<protocol::Commands>,
-    events: ResMut<protocol::Events>,
+    mut events: ResMut<protocol::Events>,
 ) {
     if let Some(ref mut state) = *state {
         let mut context = ClientContext {
@@ -64,24 +65,13 @@ fn handle_events(
         for event in events.iter() {
             *state = state.handle(&mut context, &ClientInput::Event(event.clone()));
         }
+        let ref mut e = *events;
+        e.truncate();//added
         *commands = context.commands;
     }
 }
-fn handle_wsevents(
-  mut state: ResMut<Option<ClientStateDispatcher>>,
-  events: ResMut<protocol::WSEvents>,
-) {
-  if let Some(ref mut state) = *state {
-      let mut context = ClientContext {
-          commands: Default::default(),
-      };
-      for event in events.iter() {
-          *state = state.handle(&mut context, &ClientInput::Event(event.clone()));
-      }
-     // *commands = context.commands;
-  }
-}
-fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<protocol::Commands>) {
+use futures::future::ready;
+fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<protocol::Commands>,mut events: ResMut<protocol::Events>) {
     if let Some(ref mut client) = *client {
         for command in commands.iter() {
             let command = command.clone();
@@ -89,11 +79,18 @@ fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<pr
             let rand_int = get_random_int(0,len as i32);
             let mut sender = client.clients.get_mut(rand_int).unwrap().sender();
             if let Command::Nats(_,b) = command{
+              let b_clone = b.clone();
               block_on(async move {
-                sender.send(b).await.unwrap_or_else(|err| {
+                sender.send(b.clone()).await.unwrap_or_else(|err| {
                     error!("{}", err);
-                })
+                });
+                save_sub(String::from("hello"),ClientName(Cow::Borrowed("default")));
+                //delay(10000).await;
+                info!("after 10 secsend{:?}",b);
+                ready(b_clone)
               });
+              
+              
             }
         }
         commands.clear();
@@ -107,11 +104,6 @@ fn receive_events(mut client: ResMut<Option<BoxClient>>, mut events: ResMut<prot
             for event in vec {
                 events.push(event);
             }
-        }
-        if let Some(vec) = client.clients.get_mut(0).unwrap().poll_ws_once(){
-          for event in vec{
-            client.clients.get_mut(0).unwrap().reconnect();
-          }
         }
     }
 }

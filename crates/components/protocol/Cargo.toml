@@ -21,6 +21,9 @@ derive-new = "0.5.9"
 itoa = "0.4.6"
 fastrand = "1.4.0"
 json = "0.12.4"
+pharos = "0.5.2"
+ws_stream_wasm = { version = "0.7.3" }
+log = "0.4"
 
 [dev-dependencies]
 mock-it = "0.3.0"

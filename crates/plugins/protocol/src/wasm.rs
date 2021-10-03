@@ -6,7 +6,7 @@ use futures::future::ready;
 use futures::prelude::*;
 use futures::future::{join_all, ok, err};
 use lazy_static::lazy_static;
-use protocol::{BoxClient, BoxClient2,ClientName,nats};
+use protocol::{BoxClient, BoxClient2,ClientName,nats,Client};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::{Arc,Mutex};
@@ -39,25 +39,72 @@ const DEFAULT_CLIENT: ClientName =
 
 lazy_static! {
     static ref CLIENTS: Mutex<HashMap<ClientName, BoxClient2>> = Mutex::new(HashMap::new());
+    static ref CLIENTS_TO_CONNECT: Mutex<HashMap<ClientName,(String,nats::ConnectInfo)>> = 
+    Mutex::new([(ClientName(Cow::Borrowed("default")),(String::from("wss://localhost:9223/"),
+    nats::ConnectInfo{
+      verbose:false,
+      pedantic:false,
+      user_jwt:None,
+      nkey:None,
+      signature:None,
+      user:Some(nats::SecureString::from(String::from("client"))),
+      pass:Some(nats::SecureString::from(String::from("client"))),
+      name:None,
+      echo:true,
+      auth_token:None,
+      headers:true,
+      lang:String::from("nats.ws"),
+      tls_required:false,
+      version:String::from("1.1.0"),
+    }
+  ))].iter().cloned().collect());
 }
 
 pub fn connect_websocket() {
-    let servers=vec![String::from("wss://localhost:9222/")];
-    let future_arr = servers.iter().map(|s|{
-      connect(DEFAULT_CLIENT,s.to_string()).then(|c|{
-        ready(c
-        .map(|client| {
-            CLIENTS.lock().unwrap().insert(DEFAULT_CLIENT, std::boxed::Box::new(client));
-        })
-        .unwrap_or_else(|err| error!("{}", err)))
-      })
+    //let servers=vec![String::from("wss://localhost:9222/")];
+    let servers = CLIENTS_TO_CONNECT.lock().unwrap();
+    let future_arr = servers.iter().map(|(c,s)|{
+      local_connect(c.clone(),s.clone())
     });
     let join_ = join_all(future_arr).then(|l|{
       ready(())
     });
     spawn_local(join_);
 }
-
+async fn local_connect(c:ClientName,s:(String,nats::ConnectInfo))->(){
+  connect(c.clone(),s.0.clone()).then(|cz|{
+    let c_clone = c.clone();
+    let s_clone = s.clone();
+    ready(cz
+    .map(|(client,mut meta)| {
+        let c_clone = c.clone();
+        let mut tx =client.sender();
+       
+        spawn_local( async move{
+          console_log!("try auth{:?}",s.1.clone());
+          tx.send(nats::proto::ClientOp::Connect(s.1.clone())).await.unwrap_or_else(|err| {
+            console_log!("err{}", err);
+          });
+          // tx.send(nats::proto::ClientOp::Ping).await.unwrap_or_else(|err| {
+          //   console_log!("err{}", err);
+          // });
+          if let Some(m)= meta.next().await{
+            console_log!("close{:?}",m);
+            delay(3000).await;
+            local_connect(c_clone,s.clone()).await;
+          }
+        });
+        CLIENTS.lock().unwrap().insert(c, std::boxed::Box::new(client));
+    })
+    .unwrap_or_else(|err| {
+      // spawn_local( async move{
+      //   delay(3000).await;
+      //   local_connect(c_clone,s_clone).await;
+      // });
+      error!("{}", err)})
+    )
+  }).await
+}
 pub fn set_client(mut client_res: ResMut<Option<BoxClient>>) {
     let mut map = CLIENTS.lock().unwrap();
     for (k,v) in map.drain(){

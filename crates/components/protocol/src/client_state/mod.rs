@@ -1,5 +1,7 @@
 mod before_login;
 mod normal;
+mod after_normal;
+pub(in crate::client_state) use after_normal::*;
 pub(in crate::client_state) use before_login::*;
 use enum_dispatch::enum_dispatch;
 pub(in crate::client_state) use normal::*;
@@ -11,6 +13,7 @@ use crate::{Commands, Event};
 pub enum ClientStateDispatcher {
     BeforeLogin,
     Normal,
+    AfterNormal,
 }
 
 impl Default for ClientStateDispatcher {
