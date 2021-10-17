@@ -34,6 +34,8 @@ impl Plugin for ProtocolPlugin {
                     .after(ProtocolSystem::ReceiveEvents)
                     .before(ProtocolSystem::SendCommands),
             )
+            .add_system(arugio_shared::update_position_system.system())
+            .add_system(arugio_shared::update_position_system.system())
             .add_system(send_commands.system().label(ProtocolSystem::SendCommands).after(ProtocolSystem::ReceiveEvents));
             //.add_system(send_commands.system());
         app.add_startup_system(connect_websocket.system());
@@ -89,8 +91,6 @@ fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<pr
                 info!("after 10 secsend{:?}",b);
                 ready(b_clone)
               });
-              
-              
             }
         }
         commands.clear();

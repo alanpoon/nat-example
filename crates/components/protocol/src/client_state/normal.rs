@@ -24,6 +24,11 @@ impl ClientState for Normal {
               match s_op{
                 nats::proto::ServerOp::Msg{subject,sid,reply_to,payload}=>{
                   info!("msg {} payload:{}",subject,std::str::from_utf8(payload).unwrap());
+                  info!("pub going to afternormal");
+                  return AfterNormal{
+                    
+                  }
+                  .into()
                 }
                 nats::proto::ServerOp::Ping=>{
                   let p = nats::proto::ClientOp::Pong;
