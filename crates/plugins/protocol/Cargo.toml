@@ -9,7 +9,7 @@ protocol = { package = "desk-protocol", path = "../../components/protocol", vers
 core = { package = "desk-plugin-core", path = "../core", version = "0.1.0" }
 arugio_shared = { path = "../arugio_shared" }
 
-bevy = { version = "0.5", default-features = false }
+bevy = { path = ".../../../../../../bevy2", default-features = false }
 client-websocket = { package = "desk-client-websocket", path = "../../adapters/client-websocket", version = "0.1.0" }
 futures = "0.3.16"
 eyre = "0.6.5"
@@ -19,15 +19,15 @@ lazy_static = "1.4.0"
 log = "0.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-futures = "0.4.19"
+wasm-bindgen-futures = "0.4.28"
 js-sys = "0.3.46"
-wasm-bindgen = "0.2.69"
+wasm-bindgen = "0.2.78"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.9.0", features = ["full"] }
 
 [dependencies.web-sys]
-version = "0.3.46"
+version = "0.3.50"
 features = [
   'Window',
 ]

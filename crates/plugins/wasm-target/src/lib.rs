@@ -4,9 +4,9 @@ use bevy::prelude::*;
 pub struct WasmTargetPlugin;
 
 impl Plugin for WasmTargetPlugin {
-    fn build(&self, app: &mut bevy::app::AppBuilder) {
+    fn build(&self, app: &mut bevy::app::App) {
         app.add_plugin(bevy_webgl2::WebGL2Plugin)
-            .add_plugin(bevy_kira_audio::AudioPlugin)
+           // .add_plugin(bevy_kira_audio::AudioPlugin)
             .add_system(resize.system());
     }
 }

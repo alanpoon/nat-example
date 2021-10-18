@@ -19,12 +19,13 @@ use std::borrow::Cow;
 pub struct ProtocolPlugin;
 
 impl Plugin for ProtocolPlugin {
-    fn build(&self, app: &mut bevy::app::AppBuilder) {
+    fn build(&self, app: &mut bevy::app::App) {
         let app = app
             .init_resource::<protocol::Commands>()
             .init_resource::<protocol::Events>()
             .init_resource::<Option<BoxClient>>()
             .init_resource::<Option<ClientStateDispatcher>>()
+            .init_resource::<arugio_shared::Time>()
             .add_system(add_client_state.system())
             .add_system(receive_events.system().label(ProtocolSystem::ReceiveEvents))
             .add_system(
@@ -34,7 +35,6 @@ impl Plugin for ProtocolPlugin {
                     .after(ProtocolSystem::ReceiveEvents)
                     .before(ProtocolSystem::SendCommands),
             )
-            .add_system(arugio_shared::update_position_system.system())
             .add_system(arugio_shared::update_position_system.system())
             .add_system(send_commands.system().label(ProtocolSystem::SendCommands).after(ProtocolSystem::ReceiveEvents));
             //.add_system(send_commands.system());

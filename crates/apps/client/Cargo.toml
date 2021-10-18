@@ -30,8 +30,8 @@ plugin-core = { package = "desk-plugin-core", path = "../../plugins/core", versi
 plugin-protocol = { package = "desk-plugin-protocol", path = "../../plugins/protocol", version = "0.1.0" }
 plugin-wasm-target = { package = "desk-plugin-wasm-target", path = "../../plugins/wasm-target", optional = true, version = "0.1.0" }
 
-bevy = { version = "0.5", default-features = false }
-bevy_mod_debugdump = { version = "0.2", optional = true }
+bevy = { path = ".../../../../../../bevy2", default-features = false }
+bevy_mod_debugdump = { path = ".../../../../../../bevy_mod_debugdump", optional = true }
 tracing-subscriber = "0.2.19"
 console_log = { version = "0.2"}
 log = "0.4"

@@ -23,7 +23,7 @@ pub struct Velocity(pub Vec2);
 pub struct TargetVelocity(pub Vec2);
 #[derive(Component)]
 struct SelectTimer;
-#[derive(Debug, PartialEq, Default)]
+#[derive(Component,Debug, PartialEq, Default)]
 pub struct Time{ pub elapsed:f32}
 impl Time{
   pub fn update(&mut self,t:f32){

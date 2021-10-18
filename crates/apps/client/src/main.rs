@@ -4,7 +4,7 @@ use log::Level;
 #[bevy_main]
 pub fn main() {
     
-    let mut app = App::build();
+    let mut app = App::new();
 
     app.add_plugins(DefaultPlugins)
         .add_plugin(ProtocolPlugin);
