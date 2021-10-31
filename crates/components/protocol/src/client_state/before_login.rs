@@ -14,23 +14,24 @@ impl ClientState for BeforeLogin {
         match event {
             ClientInput::Event(e) => {
                 if let Event::Nats(client_name,s_op)=e{
-                  info!("client_name: {}, {:?}",client_name,s_op);
+                  // let n = nats::proto::ClientOp::Sub{
+                  //   subject:String::from("hello"),
+                  //   queue_group:None,
+                  //   sid:3,
+                  // };
+                  // commands.commands.push(Command::Nats(String::from("default"),n));
                   let n = nats::proto::ClientOp::Sub{
-                    subject:String::from("hello"),
+                    subject:String::from("game_logic"),
                     queue_group:None,
-                    sid:3,
+                    sid:17,
                   };
                   commands.commands.push(Command::Nats(String::from("default"),n));
-                  info!("subscribe hello");
-                }
-                else if &Event::NatSubOk(String::from("hello"))== e{
+                  info!("subscribe game_logic");
                   return Normal{
                     
                   }
                   .into()
-                }
-            
-               
+                }               
             }
             event => {
                 error!("unexpected event: {:?}", event);

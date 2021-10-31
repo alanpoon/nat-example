@@ -17,7 +17,7 @@ use tracing::error;
 use client_websocket::save_sub;
 use std::borrow::Cow;
 pub struct ProtocolPlugin;
-
+use arugio_shared::Position;
 impl Plugin for ProtocolPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         let app = app
@@ -28,6 +28,7 @@ impl Plugin for ProtocolPlugin {
             .init_resource::<arugio_shared::Time>()
             .add_system(add_client_state.system())
             .add_system(receive_events.system().label(ProtocolSystem::ReceiveEvents))
+            .add_system(receive_events.system())
             .add_system(
                 handle_events
                     .system()
@@ -86,7 +87,7 @@ fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<pr
                 sender.send(b.clone()).await.unwrap_or_else(|err| {
                     error!("{}", err);
                 });
-                save_sub(String::from("hello"),ClientName(Cow::Borrowed("default")));
+                //save_sub(b.subject,ClientName(Cow::Borrowed("default")));
                 //delay(10000).await;
                 info!("after 10 secsend{:?}",b);
                 ready(b_clone)
@@ -96,12 +97,28 @@ fn send_commands(mut client:  ResMut<Option<BoxClient>>, mut commands: ResMut<pr
         commands.clear();
     }
 }
-fn receive_events(mut client: ResMut<Option<BoxClient>>, mut events: ResMut<protocol::Events>) {
+fn receive_events(mut client: ResMut<Option<BoxClient>>, mut events: ResMut<protocol::Events>,mut query: Query<(&mut Position)> ) {
     if let Some(ref mut client) = *client {
         let len = client.clients.len();
         let rand_int = get_random_int(0,len as i32);
         if let Some(vec) = client.clients.get_mut(0).unwrap().poll_once() {
             for event in vec {
+                if let Event::Nats(client_name,s_op)=event.clone(){
+                  match s_op{
+                    nats::proto::ServerOp::Msg{subject,sid,reply_to,payload}=>{
+                      if subject == String::from("game_logic"){
+                        info!("recv msg!! game_logic {} payload:{}",subject,std::str::from_utf8(&payload).unwrap());
+                        for (mut pos) in query.iter_mut() {
+                          pos.0 += 0.2 * 2.0 * 15.0;
+                        }
+                        continue
+                      }
+                    }
+                    _=>{
+                      
+                    }
+                  } 
+                }
                 events.push(event);
             }
         }
