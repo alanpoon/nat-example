@@ -23,14 +23,13 @@ commands:
   restore-sccache-cache:
     description: "Restore sccache"
     steps:
-      - run:
+      - restore_cache:
           name: "Restore sccache cache"
           key: sccache-cache-stable-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
   save-sccache-cache:
-    description: ""
+    description: "save_cache"
     steps:
-      - run:
-          name: "save_cache"
+      - save_cache:
           key: sccache-cache-stable-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
           paths:
             - "~/.cache/sccache"
