@@ -8,15 +8,12 @@ commands:
   setup-sccache:
     description: "Install sccache"
     steps:
-      - run: 
-          name: "Install sccache"
-          command: |
-            cargo install sccache
-            # This configures Rust to use sccache.
-            echo 'export "RUSTC_WRAPPER"="sccache"' >> $BASH_ENV
-            # This is the maximum space sccache cache will use on disk.
-            echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
-            sccache --version
+      # - run: 
+      #     name: "Install wget"
+      #     command: apt-get update && apt-get install --yes libpq-dev wget
+      - run:
+          name: "install sccache"
+          command: wget https://github.com/mozilla/sccache/releases/download/v0.2.15/sccache-v0.2.15-x86_64-unknown-linux-musl.tar.gz && tar xzf sccache-v0.2.15-x86_64-unknown-linux-musl.tar.gz && mv sccache-v0.2.15-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache && chmod +x /usr/local/bin/sccache
 jobs:
   say-hello:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
