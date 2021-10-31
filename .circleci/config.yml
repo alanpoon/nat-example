@@ -6,13 +6,17 @@ version: 2.1
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 commands:
   setup-sccache:
-    description: "A very simple command for demonstration purposes"
-    parameters:
-      to:
-        type: string
-        default: "Hello World2"
+    description: "Install sccache"
     steps:
-      - run: echo << parameters.to >>
+      - run: 
+          name: "Install sccache"
+          command: |
+            cargo install sccache
+            # This configures Rust to use sccache.
+            echo 'export "RUSTC_WRAPPER"="sccache"' >> $BASH_ENV
+            # This is the maximum space sccache cache will use on disk.
+            echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
+            sccache --version
 jobs:
   say-hello:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
