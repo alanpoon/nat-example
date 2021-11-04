@@ -61,6 +61,9 @@ jobs:
       - checkout
       - setup-sccache
       - restore-sccache-cache
+      - run:
+          name: "chown"
+          command: "chown -R circleci /usr/local/cargo"
       - restore-cargo-cache
       - run:
           name: "add wasm32 target"
