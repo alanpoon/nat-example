@@ -60,13 +60,13 @@ commands:
       - save_cache:
           key: target-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
           paths:
-            - ./target
+            - target/
 jobs:
   say-hello:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: jibbow/docker-rust-wasm:latest
+      - image: rustropy/rust-wasm-ci:latest
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
@@ -78,9 +78,9 @@ jobs:
           name: "chown"
           command: "sudo chown -R circleci /usr/local/cargo"
       - restore-cargo-cache
-      - run:
-          name: "add wasm32 target"
-          command: "bash install_wasm32.sh && which cargo"
+      # - run:
+      #     name: "add wasm32 target"
+      #     command: "bash install_wasm32.sh && which cargo"
       - save-cargo-cache
       - run:
           name: "build-wasm"
