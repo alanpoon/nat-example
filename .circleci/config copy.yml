@@ -29,12 +29,6 @@ commands:
       - restore_cache:
           name: "Restore sccache cache"
           key: sccache-cache-stable-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-  restore-cargo-cache:
-    description: "Restore cargo"
-    steps:
-      - restore_cache:
-          name: "Restore cargo cache"
-          key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
   save-sccache-cache:
     description: "save_cache"
     steps:
@@ -42,13 +36,6 @@ commands:
           key: sccache-cache-stable-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
           paths:
             - "~/.cache/sccache"
-  save-cargo-cache:
-    description: "save_cargo_cache"
-    steps:
-      - save_cache:
-          key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
-          paths:
-            - ~/.cargo
 jobs:
   say-hello:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
@@ -61,19 +48,16 @@ jobs:
       - checkout
       - setup-sccache
       - restore-sccache-cache
-      - restore-cargo-cache
       - run:
           name: "add wasm32 target"
-          command: "bash install_wasm32.sh"
-      - save-cargo-cache
+          command: "rustup target add wasm32-unknown-unknown"
       - run:
           name: "build-wasm"
           command: "cargo build --bin desk-client --target wasm32-unknown-unknown --release --features web"
-      - save-sccache-cache
       - run:
           name: "wasm-bindgen"
           command: "./wasm-bindgen --out-dir public --target web target/wasm32-unknown-unknown/release/desk-client.wasm"
-      
+      - save-sccache-cache
       
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
