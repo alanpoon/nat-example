@@ -48,7 +48,7 @@ commands:
       - save_cache:
           key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
           paths:
-            - ~/.cargo
+            - /usr/local/cargo
 jobs:
   say-hello:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
