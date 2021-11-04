@@ -4,6 +4,6 @@ SUB='wasm32-unknown-unknown (installed)'
 
 if [[ "$STR" == *"$SUB"* ]]; then
   echo "It's there."
-elif
+else
   rustup target add wasm32-unknown-unknown
 fi
