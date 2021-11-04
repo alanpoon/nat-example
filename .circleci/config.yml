@@ -34,7 +34,7 @@ commands:
     steps:
       - restore_cache:
           name: "Restore cargo cache"
-          key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
+          key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
   save-sccache-cache:
     description: "save_cache"
     steps:
@@ -46,7 +46,7 @@ commands:
     description: "save_cargo_cache"
     steps:
       - save_cache:
-          key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
+          key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
           paths:
             - /usr/local/cargo
 jobs:
