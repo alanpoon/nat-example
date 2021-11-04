@@ -35,6 +35,12 @@ commands:
       - restore_cache:
           name: "Restore cargo cache"
           key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+  restore-target-cache:
+    description: "Restore target"
+    steps:
+      - restore_cache:
+          name: "Restore target cache"
+          key: target-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
   save-sccache-cache:
     description: "save_cache"
     steps:
@@ -49,6 +55,13 @@ commands:
           key: cargo-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
           paths:
             - /usr/local/cargo
+  save-target-cache:
+    description: "save_target_cache"
+    steps:
+      - save_cache:
+          key: target-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+          paths:
+            - ./target
 jobs:
   say-hello:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
@@ -61,6 +74,7 @@ jobs:
       - checkout
       - setup-sccache
       - restore-sccache-cache
+      - restore-target-cache
       - run:
           name: "chown"
           command: "sudo chown -R circleci /usr/local/cargo"
@@ -73,6 +87,7 @@ jobs:
           name: "build-wasm"
           command: "cargo build --bin desk-client --target wasm32-unknown-unknown --release --features web"
       - save-sccache-cache
+      - save-target-cache
       - run:
           name: "wasm-bindgen"
           command: "./wasm-bindgen --out-dir public --target web target/wasm32-unknown-unknown/release/desk-client.wasm"
