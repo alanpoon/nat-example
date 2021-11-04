@@ -64,7 +64,7 @@ jobs:
       - restore-cargo-cache
       - run:
           name: "add wasm32 target"
-          command: "bash install_wasm32.sh"
+          command: "bash install_wasm32.sh && which cargo"
       - save-cargo-cache
       - run:
           name: "build-wasm"
