@@ -21,9 +21,6 @@ web = [
   "plugin-wasm-target"
 ]
 
-debugdump = [
-  "bevy_mod_debugdump"
-]
 
 [dependencies]
 plugin-core = { package = "desk-plugin-core", path = "../../plugins/core", version = "0.1.0" }
@@ -33,7 +30,6 @@ plugin-physics-rapier = { package = "desk-plugin-physics-rapier", path = "../../
 
 #bevy = { path = ".../../../../../../bevy2", default-features = false }
 bevy = { git = "https://github.com/bevyengine/bevy", rev = "d65fbd7b9d4e7393acb18ee446b76ed28a549548", default-features = false }
-bevy_mod_debugdump = { path = ".../../../../../../bevy_mod_debugdump", optional = true }
 tracing-subscriber = "0.2.19"
 console_log = { version = "0.2"}
 log = "0.4"
