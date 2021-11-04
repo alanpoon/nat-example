@@ -17,7 +17,6 @@ commands:
       - run:
           name: "set env"
           command: |
-            echo 'export "RUSTC_WRAPPER"="sccache"' >> $BASH_ENV
             echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
             sccache-v0.2.15-x86_64-unknown-linux-musl/sccache --version
             alias sccache="sccache-v0.2.15-x86_64-unknown-linux-musl/sccache"
