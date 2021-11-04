@@ -1,3 +1,4 @@
 target
 assets
 public
+wasm-bindgen2
