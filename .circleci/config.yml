@@ -49,6 +49,9 @@ jobs:
       - setup-sccache
       - restore-sccache-cache
       - run:
+          name: "add wasm32 target"
+          command: "rustup target add wasm32-unknown-unknown"
+      - run:
           name: "build-wasm"
           command: "cargo build --bin desk-client --target wasm32-unknown-unknown --release --features web"
       - run:
