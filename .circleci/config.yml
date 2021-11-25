@@ -8,45 +8,12 @@ commands:
   setup-sccache:
     description: "Install sccache"
     steps:
-      # - run: 
-      #     name: "Install wget"
-      #     command: apt-get update && apt-get install --yes libpq-dev wget
-      - run:
-          name: "install sccache"
-          command: wget https://github.com/mozilla/sccache/releases/download/v0.2.15/sccache-v0.2.15-x86_64-unknown-linux-musl.tar.gz && tar xzf sccache-v0.2.15-x86_64-unknown-linux-musl.tar.gz && chmod +x sccache-v0.2.15-x86_64-unknown-linux-musl/sccache
-      - run:
-          name: "set env"
-          command: |
-            echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
-            sccache-v0.2.15-x86_64-unknown-linux-musl/sccache --version
-            alias sccache="sccache-v0.2.15-x86_64-unknown-linux-musl/sccache"
-            sudo cp sccache-v0.2.15-x86_64-unknown-linux-musl/sccache /usr/local/bin
-            sccache --version
-  restore-sccache-cache:
-    description: "Restore sccache"
-    steps:
-      - restore_cache:
-          name: "Restore sccache cache"
-          key: sccache-cache-stable-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
   restore-cargo-cache:
     description: "Restore cargo"
     steps:
       - restore_cache:
           name: "Restore cargo cache"
           key: v6-cargo-cache-{{arch}}-{{checksum "rust-version"}}-{{checksum "Cargo.lock"}}
-  restore-target-cache:
-    description: "Restore target"
-    steps:
-      - restore_cache:
-          name: "Restore target cache"
-          key: target-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-  save-sccache-cache:
-    description: "save_cache"
-    steps:
-      - save_cache:
-          key: sccache-cache-stable-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
-          paths:
-            - "~/.cache/sccache"
   save-cargo-cache:
     description: "save_cargo_cache"
     steps:
@@ -76,13 +43,9 @@ jobs:
             rustc --version >rust-version
             test -e Cargo.lock || cargo generate-lockfile
       - restore-cargo-cache
-      # - run:
-      #     name: "add wasm32 target"
-      #     command: "bash install_wasm32.sh && which cargo"
       - run:
           name: "build-wasm"
           command: "cargo build --bin desk-client --target wasm32-unknown-unknown --release --features web"
-      - save-sccache-cache
       - save-cargo-cache
       - run:
           name: "wasm-bindgen"
