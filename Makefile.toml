@@ -16,8 +16,8 @@ args = ["--out-dir", "public", "--target", "web", "target/wasm32-unknown-unknown
 dependencies = ["build-wasm"]
 
 [tasks.wasm-serve]
-command = "nohup basic-http-server"
-args = ["public"]
+command = "nohup"
+args = ["basic-http-server", "public"]
 dependencies = ["wasm-bindgen"]
 
 [tasks.check]

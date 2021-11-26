@@ -1,3 +1,5 @@
 target
-public
+public/*
+!public/index.html
 wasm-bindgen2
+nohup.out
